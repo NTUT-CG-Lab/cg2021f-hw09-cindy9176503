@@ -69,6 +69,21 @@ class threejsViewer {
             this.camera.updateProjectionMatrix();
         })
 
+        let mesh = null
+        this.loadData = (paddingData, size, isovalue) => {
+            mesh = new MarchingCubes(size)
+            mesh.material = new THREE.MeshPhongMaterial()
+            mesh.isolation = isovalue
+            mesh.field = paddingData
+
+            this.scene.add(mesh)
+        }
+
+        this.download = () => {
+            mesh.generateGeometry()
+            return mesh
+        }
+
         this.renderScene()
     }
 }

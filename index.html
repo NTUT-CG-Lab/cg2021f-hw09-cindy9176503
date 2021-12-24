@@ -159,7 +159,7 @@
     <script src="js/scoreoutputer.min.js"></script>
     <script>
         // 建構子 ScoreOutputer 接受一個字串，該字串為 csv 的檔案名稱
-        var so = new ScoreOutputer("109114514");
+        var so = new ScoreOutputer("110598068");
         so.installCSS(function () {
             // 安裝 bootstrap 的 css，如果在 html 上方引用 bootstrap 5.1.1 的話就不用使用 installCSS ，注意一定要 bootstrap css 5.1.1 版
             // installCSS 接收一個 callback 當作參數，作為成功安裝 bootstrap css 的回呼函式
@@ -207,8 +207,8 @@
     <script type="module">
 
         import { threejsViewer } from './jsm/threejsViewer.js'
-        import { PLYExporter } from "./threejs/examples/jsm/exporters/PLYExporter.js";
-
+        import { STLExporter } from "./threejs/examples/jsm/exporters/STLExporter.js";
+                                    
         const fileRegex = /(\w+)_(\d+)x(\d+)x(\d+)_(\w+)\.*/;
 
         let modelView = new threejsViewer(document.body)// webgl畫布
@@ -238,12 +238,54 @@
 
             // RAW文件讀取
             elements[0].addEventListener('change', (evt) => {
+                let fr = new FileReader()
 
+                let files = evt.target.files
+                if(files.length <=0) {
+                    return
+                }
+                
+                let file = evt.target.files[0]
+
+                let filename = file.name
+
+                filename = filename.split('.')
+                let values = filename[0].split('_')
+
+                let width = values[1]
+                let height = values[2]
+                let depth = values[3]
+                let byte = values[4]
+
+                let max = Math.max(width, height, depth)
+
+                let data = null
+                let paddingData = null
+
+                fr.onload = () => {
+                    let result = fr.result
+                    if(byte == 'uint8') {
+                        data = new Uint8Array(result)
+                        paddingData = new Uint8Array(max * max * max)
+
+                        modelView.loadData(paddingData, width, height, depth, 75)
+                    }
+                }
+
+                fr.readAsArrayBuffer(file)
             })
 
             // 模型資料下載
             elements[1].addEventListener('click', (evt) => {
+                let exporter = new STLExporter()
+                let mesh = modelView.download()
 
+                // let result = exporter.parse(mesh, {binary:true})
+                // let blob = new Blob([result], type:'application/octet-stream')
+
+                let dlLink = document.createElement('a')
+
+                dlLink.click()
             })
 
             // 閥值設定
@@ -258,7 +300,7 @@
 
             // 模型網格顯示
             elements[4].addEventListener('change', (evt) => {
-
+                
             })
         }
 
