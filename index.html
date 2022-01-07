@@ -131,14 +131,14 @@
 
             <!--閥值-->
             <div class="labelLayout">
-                <label for="isovalueSlider">閥值:0/0</label>
-                <input class="labelInput" id="isovalueSlider" type="range" name="settingForm" min=0 max=1000>
+                <label for="isovalueSlider" id="isovalueLabel">閥值:127/255</label>
+                <input class="labelInput" id="isovalueSlider" type="range" name="settingForm" min=0 max=255>
             </div>
 
             <!--紋理-->
             <div class="labelLayout">
                 <label>Texture:</label>
-                <select class="labelInput" name="settingForm">
+                <select class="labelInput" name="settingForm" id="settingForm">
                     <option value=0 selected>option 1</option>
                     <option value=1>option 2</option>
                 </select>
@@ -237,70 +237,83 @@
             let elements = document.getElementsByName('settingForm')
 
             // RAW文件讀取
-            elements[0].addEventListener('change', (evt) => {
-                let fr = new FileReader()
+            elements[0].addEventListener('change', (evt) => {   // load Raw btn
+                let fr = new FileReader();
 
-                let files = evt.target.files
-                if(files.length <=0) {
-                    return
-                }
+                let files = evt.target.files;
+                if(files.length <= 0)   return;
+
+                let file = evt.target.files[0];
+                let filename = file.name;
+                let values = filename.split('.')[0].split('_');
+
+                let width = values[1];
+                let height = values[2];
+                let depth = values[3];
+                let byte = values[4];
+                let max_val = Math.max(width, height, depth);
                 
-                let file = evt.target.files[0]
-
-                let filename = file.name
-
-                filename = filename.split('.')
-                let values = filename[0].split('_')
-
-                let width = values[1]
-                let height = values[2]
-                let depth = values[3]
-                let byte = values[4]
-
-                let max = Math.max(width, height, depth)
-
-                let data = null
-                let paddingData = null
+                let data = null;
+                let paddingData = null;
 
                 fr.onload = () => {
-                    let result = fr.result
-                    if(byte == 'uint8') {
-                        data = new Uint8Array(result)
-                        paddingData = new Uint8Array(max * max * max)
-
-                        modelView.loadData(paddingData, width, height, depth, 75)
+                    let result = fr.result;
+                    if(byte === 'uint8'){
+                        data = new Uint8Array(result);
+                        
+                        paddingData = new Uint8Array(max_val * max_val * max_val);
+                        console.log(paddingData);
+                        for(let i = 0; i < data.length; i ++){
+                            paddingData[i] = data[i];
+                        }
+                        console.log(paddingData);
+                        
+                        modelView.databuffer = paddingData;
+                        modelView.size = max_val;
+                        modelView.threshold = 75; //isoval
+                        // modelView.loadData(paddingData, max_val, 75);
+                        modelView.loadData();
+                        alert("影像的長/寬/張數: " + width + " x " + height + " x " + depth + "\n" + 
+                        "位元: " + byte + " bit");
                     }
                 }
 
-                fr.readAsArrayBuffer(file)
+                fr.readAsArrayBuffer(file);
             })
 
             // 模型資料下載
-            elements[1].addEventListener('click', (evt) => {
-                let exporter = new STLExporter()
-                let mesh = modelView.download()
+            elements[1].addEventListener('click', (evt) => {    // save Model btn
+                let exporter = new STLExporter();
+                let mesh = modelView.download();
 
-                // let result = exporter.parse(mesh, {binary:true})
-                // let blob = new Blob([result], type:'application/octet-stream')
+                let result = exporter.parse(mesh, {binary:true})
+                let blob = new Blob([result], {type:'application/octet-stream'})
 
-                let dlLink = document.createElement('a')
+                let dlLink = document.createElement('a');
+                dlLink.href = URL.createObjectURL(blob)
+                dlLink.download = 'model.stl'
 
                 dlLink.click()
             })
 
             // 閥值設定
-            elements[2].addEventListener('click', (evt) => {
+            elements[2].addEventListener('click', (evt) => {    // isovalue Slider
+                let isoVal = evt.srcElement.value;
+                modelView.threshold = 255-isoVal;
 
+                let isovalueLabel = document.querySelector('#isovalueLabel');
+                isovalueLabel.innerHTML = '閥值:' + isoVal + '/255';
+                modelView.updateModel();
             })
 
             // 紋理設置
             elements[3].addEventListener('change', (evt) => {
-
+                modelView.updateModel();
             })
 
             // 模型網格顯示
             elements[4].addEventListener('change', (evt) => {
-                
+                modelView.updateModel();
             })
         }
 
